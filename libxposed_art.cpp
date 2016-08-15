@@ -40,8 +40,19 @@ bool xposedInitLib(XposedShared* shared) {
 }
 
 /** Called very early during VM startup. */
-bool onVmCreated(JNIEnv*) {
-    // TODO: Handle CLASS_MIUI_RESOURCES?
+bool onVmCreated(JNIEnv* env) {
+
+    jclass classMiuiResources = env->FindClass(CLASS_MIUI_RESOURCES);
+    if (classMiuiResources != NULL) {
+        ScopedObjectAccess soa(env);
+        mirror::Class* clazz = soa.Decode<mirror::Class*>(classMiuiResources);
+        if (clazz->IsFinal()) {
+            ALOGD("Removing final flag for class '%s'", CLASS_MIUI_RESOURCES);
+            clazz->SetAccessFlags(clazz->GetAccessFlags() & ~kAccFinal);
+        }
+    }
+    env->ExceptionClear();
+
     ArtMethod::xposed_callback_class = classXposedBridge;
     ArtMethod::xposed_callback_method = methodXposedBridgeHandleHookedMethod;
     return true;
